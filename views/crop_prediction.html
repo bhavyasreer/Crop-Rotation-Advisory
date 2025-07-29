@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Crop Prediction</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            max-width: 800px; 
+            margin: 20px auto; 
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .form-group {
+            margin-bottom: 15px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #19f08b;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #0ed077;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Crop Prediction System</h2>
+    
+    <form id="predictionForm" onsubmit="predictCrop(event)">
+        <div class="form-group">
+            <label>Nitrogen (N) Value:</label>
+            <input type="number" id="n" placeholder="Enter nitrogen value (0-140)" required min="0" max="140">
+        </div>
+
+        <div class="form-group">
+            <label>Phosphorus (P) Value:</label>
+            <input type="number" id="p" placeholder="Enter phosphorus value (5-145)" required min="5" max="145">
+        </div>
+
+        <div class="form-group">
+            <label>Potassium (K) Value:</label>
+            <input type="number" id="k" placeholder="Enter potassium value (5-205)" required min="5" max="205">
+        </div>
+
+        <div class="form-group">
+            <label>Temperature (°C):</label>
+            <input type="number" id="temperature" step="0.01" placeholder="Enter temperature (8-44°C)" required min="8" max="44">
+        </div>
+
+        <div class="form-group">
+            <label>Humidity (%):</label>
+            <input type="number" id="humidity" step="0.01" placeholder="Enter humidity (14-100%)" required min="14" max="100">
+        </div>
+
+        <div class="form-group">
+            <label>pH Level:</label>
+            <input type="number" id="ph" step="0.01" placeholder="Enter pH level (3.5-10)" required min="3.5" max="10">
+        </div>
+
+        <div class="form-group">
+            <label>Rainfall (mm):</label>
+            <input type="number" id="rainfall" step="0.01" placeholder="Enter rainfall (20-300mm)" required min="20" max="300">
+        </div>
+
+        <button type="submit">Predict Crop</button>
+    </form>
+
+    <div id="results" class="results"></div>
+
+    <script>
+        async function predictCrop(event) {
+            event.preventDefault();
+            
+            const formData = {
+                n: parseFloat(document.getElementById('n').value),
+                p: parseFloat(document.getElementById('p').value),
+                k: parseFloat(document.getElementById('k').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidity: parseFloat(document.getElementById('humidity').value),
+                ph: parseFloat(document.getElementById('ph').value),
+                rainfall: parseFloat(document.getElementById('rainfall').value)
+            };
+
+            try {
+                const response = await fetch('/predict-crop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data.recommendations);
+                } else {
+                    alert(data.message || 'Prediction failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error making prediction');
+            }
+        }
+
+        function displayResults(predictions) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `
+                <h3>Recommended Crops</h3>
+                <div style="display: grid; gap: 20px;">
+            `;
+            
+            predictions.forEach((pred, index) => {
+                const isTopPrediction = index === 0;
+                html += `
+                    <div style="
+                        padding: 20px;
+                        border-radius: 8px;
+                        background: ${isTopPrediction ? '#e8fff4' : 'white'};
+                        border: 1px solid ${isTopPrediction ? '#19f08b' : '#ddd'};
+                    ">
+                        <h4 style="margin: 0 0 10px 0; color: #333;">
+                            ${index + 1}. ${pred.crop}
+                            ${isTopPrediction ? ' <span style="color: #19f08b">(Best Match)</span>' : ''}
+                        </h4>
+                        <p style="margin: 5px 0; color: #666;">
+                            Confidence: ${pred.confidence.toFixed(2)}%
+                        </p>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultsDiv.innerHTML = html;
+        }
+    </script>
+</body>
+</html> 

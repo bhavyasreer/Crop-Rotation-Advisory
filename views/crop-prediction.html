@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Rotation Prediction</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .prediction-form {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        select, input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .recommendation-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Crop Rotation Prediction</h1>
+        
+        <div class="prediction-form">
+            <div class="form-group">
+                <label for="currentCrop">Current Crop:</label>
+                <select id="currentCrop" required>
+                    <option value="">Select Current Crop</option>
+                    <option value="Cotton">Cotton</option>
+                    <option value="Rice">Rice</option>
+                    <option value="Chilli">Chilli</option>
+                    <option value="Wheat">Wheat</option>
+                    <option value="Sugarcane">Sugarcane</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="temperature">Temperature (°C):</label>
+                <input type="number" id="temperature" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="humidity">Humidity (%):</label>
+                <input type="number" id="humidity" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="ph">pH Level:</label>
+                <input type="number" id="ph" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="rainfall">Rainfall (mm):</label>
+                <input type="number" id="rainfall" step="0.01" required>
+            </div>
+
+            <div class="form-group">
+                <label for="soilType">Soil Type:</label>
+                <select id="soilType" required>
+                    <option value="">Select Soil Type</option>
+                    <option value="Red Soil">Red Soil</option>
+                    <option value="Black Soil">Black Soil</option>
+                    <option value="Sandy Soil">Sandy Soil</option>
+                    <option value="Loamy Soil">Loamy Soil</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="rainfallLevel">Rainfall Level:</label>
+                <select id="rainfallLevel" required>
+                    <option value="">Select Rainfall Level</option>
+                    <option value="High">High</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Low">Low</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="cropDuration">Crop Duration:</label>
+                <select id="cropDuration" required>
+                    <option value="">Select Duration</option>
+                    <option value="Short (3-4 months)">Short (3-4 months)</option>
+                    <option value="Medium (5-7 months)">Medium (5-7 months)</option>
+                    <option value="Long (8-12 months)">Long (8-12 months)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="investment">Investment (₹):</label>
+                <input type="number" id="investment" required>
+            </div>
+
+            <button onclick="predictCrop()">Predict Next Crop</button>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <h2>Recommended Next Crop</h2>
+            <div id="recommendationsList"></div>
+        </div>
+    </div>
+
+    <script>
+        async function predictCrop() {
+            const formData = {
+                currentCrop: document.getElementById('currentCrop').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidity: parseFloat(document.getElementById('humidity').value),
+                ph: parseFloat(document.getElementById('ph').value),
+                rainfall: parseFloat(document.getElementById('rainfall').value),
+                soilType: document.getElementById('soilType').value,
+                rainfallLevel: document.getElementById('rainfallLevel').value,
+                cropDuration: document.getElementById('cropDuration').value,
+                investment: parseFloat(document.getElementById('investment').value)
+            };
+
+            // Validate all fields
+            for (let key in formData) {
+                if (!formData[key] && formData[key] !== 0) {
+                    alert('Please fill all fields');
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch('/predict-crop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    alert(data.message || 'Error making prediction');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error making prediction. Please try again.');
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            const recommendationsList = document.getElementById('recommendationsList');
+            
+            recommendationsList.innerHTML = data.recommendations
+                .map(rec => `
+                    <div class="recommendation-item">
+                        <h3>${rec.crop}</h3>
+                        <p>Confidence: ${rec.confidence}%</p>
+                        <p>Expected Investment: ₹${rec.averageInvestment}</p>
+                        <p>Expected Profit: ₹${rec.averageProfit}</p>
+                        <p>Expected Revenue: ₹${rec.averageRevenue}</p>
+                        <p>ROI: ${rec.roi}%</p>
+                        <p>Success Rate: ${rec.successRate}%</p>
+                    </div>
+                `)
+                .join('');
+            
+            results.style.display = 'block';
+        }
+    </script>
+</body>
+</html> 
